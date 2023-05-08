@@ -35,7 +35,6 @@ class Sorter:
 
         self.red_target_fiducial = rospy.get_param("~target_fiducial", "fid104")
         self.green_target_fiducial = rospy.get_param("~target_fiducial", "fid108")
-
         self.mixed_target_fiducial = rospy.get_param("~target_fiducial", "fid109")
         
         #whether the target fiducial has been found, used to solve edge cases related to state changes
@@ -54,9 +53,9 @@ class Sorter:
 
         # base rate of speed
         self.angular_rate = 2.0
-        self.linear_rate = 0.2
+        self.linear_rate = 0.15
 
-        self.max_angular_rate = 0.4 #1.2 #max turn. 
+        self.max_angular_rate = 0.5 #1.2 #max turn. 
         self.max_linear_rate = 1.5
 
         self.min_dist = 0.3
@@ -105,8 +104,8 @@ class Sorter:
             angular_error = math.atan2(self.fid_y, self.fid_x)
 
 
-            self.fiducialTwist.linear.x = (self.forward_error /1.25) * self.linear_rate #damping fidu #1.1 or 1.25
-            self.fiducialTwist.angular.z = -angular_error * self.angular_rate - self.fiducialTwist.angular.z / 2.0 #- for some reason
+            self.fiducialTwist.linear.x = (self.forward_error * 0.8) * self.linear_rate 
+            self.fiducialTwist.angular.z = -(angular_error * self.angular_rate - self.fiducialTwist.angular.z / 2.0)/3 # - for some reason
             
 
 
@@ -126,6 +125,8 @@ class Sorter:
 
         print("starting run")
         print(self.state)
+
+        rospy.sleep(15.)
 
         while not rospy.is_shutdown():
             self.print_state()
@@ -186,7 +187,7 @@ class Sorter:
                 #return to starting position
 
 
-                if self.forward_error < 1.1 and self.acquired:
+                if self.forward_error < 0.95 and self.acquired:
                     self.servo_pub.publish(True) #open
                     self.state = "find_item"
 
@@ -194,7 +195,8 @@ class Sorter:
 
             
             #twist processing
-
+            print("finalangle:   "+ str(finalTwist.angular.z))
+            print("finalspeed:   "+ str(finalTwist.linear.x))
 
             # Make sure that the angular speed is within limits
             if finalTwist.angular.z < -self.max_angular_rate:
@@ -212,9 +214,11 @@ class Sorter:
 
             #rotates to find fiducial if not present
             if not self.acquired and self.state != "find_item":
-                finalTwist.angular.z = 0.4 # turning to find 
+                finalTwist.angular.z = 0.2 # turning to find 
                 finalTwist.linear.x = -0.05 # reverse param
 
+            print("finalangle:   "+ str(finalTwist.angular.z))
+            print("finalspeed:   "+ str(finalTwist.linear.x))
 
             self.cmd_pub.publish(finalTwist)
 

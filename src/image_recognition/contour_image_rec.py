@@ -39,7 +39,7 @@ class Follower:
 
     def set_color_cb(self, msg):
         self.target_color = msg.data
-        print(self.target_color)
+        #print(self.target_color)
 
     def image_callback(self, msg):
         # print('img_callback')
@@ -110,14 +110,14 @@ class Follower:
         # show the images
         cv2.circle(image, (int(cx), int(cy)), 8, (255,255,0), -1)
 
-        print("rect width:   " + str(w))
+        #print("rect width:   " + str(w))
 
         #following test**********************
         h2, w2, d2 = image.shape
         
         #sets unused twist value to one to signal main file to close claw once close enough
         #ideal value so far is 220
-        if(w > 200):
+        if(w > 204):
             self.twist.linear.y = 1.0
             print("closed")
         elif w > 120 and (cx < 70 or cx > 330):
@@ -129,12 +129,12 @@ class Follower:
         
         err = cx - w2/2
         ang_vel = ang_vel_control(-float(err) / 100)
-        print("err"+str(err))
+        #print("err"+str(err))
 
-        print("cx:  " + str(cx))
+        #print("cx:  " + str(cx))
 
 
-        print("ang_vel= "+str(ang_vel)) #I turned this off for launch testing too. 
+        #print("ang_vel= "+str(ang_vel)) #I turned this off for launch testing too. 
             
         self.twist.angular.z = ang_vel
         self.direction_pub.publish(self.twist) 
