@@ -44,8 +44,8 @@ class Follow:
     def newTf(self, msg):
         imageTime = msg.header.stamp
 
-        print (imageTime, rospy.Time.now())
-        print ("*****")
+        # print (imageTime, rospy.Time.now())
+        # print ("*****")
 
         finalTransforms = {}
 
@@ -55,9 +55,9 @@ class Follow:
             id = m.fiducial_id
             trans = m.transform.translation
             rot = m.transform.rotation
-            print ("Fid %d %lf %lf %lf %lf %lf %lf %lf\n" % \
-                                 (id, trans.x, trans.y, trans.z,
-                                  rot.x, rot.y, rot.z, rot.w))
+            # print ("Fid %d %lf %lf %lf %lf %lf %lf %lf\n" % \
+                                #  (id, trans.x, trans.y, trans.z,
+                                #   rot.x, rot.y, rot.z, rot.w))
             t = TransformStamped()
             t.child_frame_id = "fid%d" % id
             t.header.frame_id = msg.header.frame_id
@@ -72,7 +72,7 @@ class Follow:
             t.transform.rotation.z = rot.z
             t.transform.rotation.w = rot.w
             self.br.sendTransform(t)
-            print(t)
+            # print(t)
             self.fid_pub.publish(t)
 
 

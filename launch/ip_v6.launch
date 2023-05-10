@@ -1,8 +1,7 @@
 <launch>
-  <!-- This launch file: V5! WORKING file to launch. 
-    Known bugs: cv motion control and color switch need testing. 
+  <!-- This launch file: V6! INPROGRESS file to launch. 
 
-    TO LAUNCH: $ roslaunch object_sorter prod_v5.launch
+    TO LAUNCH: $ roslaunch object_sorter ip_v6.launch
     See below/readme if doesn't run. -->
 
   
@@ -24,7 +23,7 @@
   <arg name="fiducial_len_override" default="" />
   <arg name="verbose" default="false"/>
 
-  <node pkg="aruco_detect" name="aruco_detect"
+  <node pkg="object_sorter" name="aruco_detect"
     type="aruco_detect" output="screen" respawn="false">
     <param name="image_transport" value="$(arg transport)"/>
     <param name="publish_images" value="true" />

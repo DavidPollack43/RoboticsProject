@@ -119,10 +119,10 @@ class Follower:
         #ideal value so far is 220
         if(w > 204):
             self.twist.linear.y = 1.0
-            print("closed")
+            # print("closed")
         elif w > 120 and (cx < 70 or cx > 330):
             self.twist.linear.y = 1.0
-            print("closed")
+            # print("closed")
         else:
             self.twist.linear.y = 0
 

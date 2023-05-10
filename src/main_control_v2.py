@@ -1,7 +1,11 @@
 #!/usr/local/bin/python
 #!/usr/bin/python
 '''Main control for sorter
+This node controls state and speed and contains all the state variable that track changes
+in the environment. It switches between modes and cans to pick up by color.
+Isaac Goldings, David Pollack, Jeremy Huey
 bf: means bugfix
+updated to v6 demo-final version 05/10/2023
 '''
 
 import rospy
@@ -29,8 +33,11 @@ class Sorter:
         print("Starting main_control in object_Sorter project.")
         # basic params ====
         self.rate = rospy.Rate(30)
+        self.start_time = rospy.Time.now().to_sec()
+        self.stop_time = 2 
+        self.reverse_elapse_time = 3 #this should remain 3, as its multiplicative to raw neg x -0.12
 
-        self.state = "find_item"
+        self.state = "return_to_start" #"find_item"
         self.target_color = "red"
 
         self.red_target_fiducial = rospy.get_param("~target_fiducial", "fid104")
@@ -41,7 +48,8 @@ class Sorter:
         self.acquired = False
 
 
-        self.target_fiducial = self.red_target_fiducial
+        # self.target_fiducial = self.red_target_fiducial #original
+        self.target_fiducial = self.mixed_target_fiducial
 
 
         self.LinSpd = 0.0
@@ -53,7 +61,7 @@ class Sorter:
 
         # base rate of speed
         self.angular_rate = 2.0
-        self.linear_rate = 0.15
+        self.linear_rate = 0.15 #demo=0.15 #fast=0.2 or 0.25 #this is for the speed of the robot
 
         self.max_angular_rate = 0.5 #1.2 #max turn. 
         self.max_linear_rate = 1.5
@@ -104,7 +112,8 @@ class Sorter:
             angular_error = math.atan2(self.fid_y, self.fid_x)
 
 
-            self.fiducialTwist.linear.x = (self.forward_error * 0.8) * self.linear_rate 
+            self.fiducialTwist.linear.x = (self.forward_error * 0.8) * self.linear_rate #demo version
+            # self.fiducialTwist.linear.x = (self.forward_error ) * self.linear_rate 
             self.fiducialTwist.angular.z = -(angular_error * self.angular_rate - self.fiducialTwist.angular.z / 2.0)/3 # - for some reason
             
 
@@ -117,7 +126,7 @@ class Sorter:
         # ps += "\n Pos X undef, Pos Y undef, LinSpd:"+str(self.LinSpd)+" AngSpd:"+str(self.AngSpd)
         # ps += "\n Other vars here. Remaining: "+str(self.remaining)
         print(ps)
-        print("ac:    "+ str(self.acquired))
+        print("self.acquired:    "+ str(self.acquired))
 
 
 
@@ -127,6 +136,7 @@ class Sorter:
         print(self.state)
 
         rospy.sleep(15.)
+        self.servo_pub.publish(True) #open
 
         while not rospy.is_shutdown():
             self.print_state()
@@ -141,24 +151,45 @@ class Sorter:
                 if self.colorTwist.linear.y == 0: 
                     self.servo_pub.publish(True) #open
                 elif self.colorTwist.linear.y == 1.0:
+                    # the robot grabs here!
                     self.servo_pub.publish(False) #close
-                    self.state = "deliver_item"
                     self.acquired = False
+                    #set target fiducial
+                    if self.target_color == "red":
+                        self.target_fiducial = self.red_target_fiducial
+                    else:
+                        self.target_fiducial = self.green_target_fiducial
+                    self.start_time = rospy.Time.now().to_sec()
+                    self.stop_time = self.reverse_elapse_time + self.start_time
+                    
+                    # self.state = "deliver_item"
+                    
+                    self.state = "reverse"
 
 
                 finalTwist.linear.x = self.linear_rate
                 finalTwist.angular.z = self.colorTwist.angular.z
 
-            elif self.state == "deliver_item":
-                # deliver item
-
-                #set target fiducial
-                if self.target_color == "red":
-                    self.target_fiducial = self.red_target_fiducial
+            elif self.state == "reverse":
+                if rospy.Time.now().to_sec() < self.stop_time:
+                    finalTwist.linear.x = -0.14
+                    finalTwist.angular.z = 0
                 else:
-                    self.target_fiducial = self.green_target_fiducial
-                
+                    self.state = "deliver_item"
 
+            elif self.state == "reverse_post_drop":
+                if rospy.Time.now().to_sec() < self.stop_time:
+                    finalTwist.linear.x = -0.14
+                    finalTwist.angular.z = 0
+                else:
+                    self.state = "return_to_start"
+
+            elif self.state == "deliver_item":
+                #set target fiducial
+                # if self.target_color == "red":
+                #     self.target_fiducial = self.red_target_fiducial
+                # else:
+                #     self.target_fiducial = self.green_target_fiducial
                 
                 # delivered
                 if self.forward_error < 0.5 and self.acquired: #0.5
@@ -177,9 +208,13 @@ class Sorter:
                         self.state = "shutdown"
                         self.shutdown()
                     # end switch-color section, includes shutdown() ====
-                    self.state = "return_to_start"
+                    
+                    
+                    self.start_time = rospy.Time.now().to_sec()
+                    self.stop_time = self.reverse_elapse_time + self.start_time
                     self.target_fiducial = self.mixed_target_fiducial
                     self.acquired = False
+                    self.state = "reverse_post_drop" # self.state = "return_to_start"
 
                 finalTwist = self.fiducialTwist
 
@@ -195,30 +230,27 @@ class Sorter:
 
             
             #twist processing
-            print("finalangle:   "+ str(finalTwist.angular.z))
-            print("finalspeed:   "+ str(finalTwist.linear.x))
+            # print("finalangle:   "+ str(finalTwist.angular.z))
+            # print("finalspeed:   "+ str(finalTwist.linear.x))
 
             # Make sure that the angular speed is within limits
             if finalTwist.angular.z < -self.max_angular_rate:
                 finalTwist.angular.z = -self.max_angular_rate
             if finalTwist.angular.z > self.max_angular_rate:
                 finalTwist.angular.z = self.max_angular_rate
-
-
             # Make sure that the linear speed is within limits
             if finalTwist.linear.x < -self.max_linear_rate:
                 finalTwist.linear.x = -self.max_linear_rate
             if finalTwist.linear.x > self.max_linear_rate:
                 finalTwist.linear.x = self.max_linear_rate
 
-
             #rotates to find fiducial if not present
-            if not self.acquired and self.state != "find_item":
-                finalTwist.angular.z = 0.2 # turning to find 
-                finalTwist.linear.x = -0.05 # reverse param
+            if (not self.acquired) and self.state != "find_item" and self.state != "reverse" and self.state !=  "reverse_post_drop":
+                finalTwist.angular.z = 0.2 # turning to find #demo = 0.2 #fast = 0.4
+                finalTwist.linear.x = 0 # -0.05 # reverse param
 
-            print("finalangle:   "+ str(finalTwist.angular.z))
-            print("finalspeed:   "+ str(finalTwist.linear.x))
+            # print("finalangle:   "+ str(finalTwist.angular.z))
+            # print("finalspeed:   "+ str(finalTwist.linear.x))
 
             self.cmd_pub.publish(finalTwist)
 
