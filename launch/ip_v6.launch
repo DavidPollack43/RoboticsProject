@@ -23,7 +23,7 @@
   <arg name="fiducial_len_override" default="" />
   <arg name="verbose" default="false"/>
 
-  <node pkg="aruco_detect" name="aruco_detect"
+  <node pkg="object_sorter" name="aruco_detect"
     type="aruco_detect" output="screen" respawn="false">
     <param name="image_transport" value="$(arg transport)"/>
     <param name="publish_images" value="true" />
