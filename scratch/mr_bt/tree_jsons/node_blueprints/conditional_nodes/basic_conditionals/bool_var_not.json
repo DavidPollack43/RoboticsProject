@@ -1,8 +1,0 @@
-{
-    "name":"** //STRING// name of node **",
-    "type":"BoolVarNot",
-    "var_name":"** //STRING// name of the boolean variable in the blackboard to be flipped and returned **",
-    "blackboard":{
-        "** //STRING// name of the boolean variable in the blackboard to be flipped and returned **":"** //BOOLEAN/NULL// boolean value **"
-    }
-}

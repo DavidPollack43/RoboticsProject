@@ -1,5 +1,0 @@
-{
-    "name":"** //STRING// name of node **",
-    "type":"Sequencer",
-    "children":"** //LIST// a list of json dictionaries that define/reference other nodes **"
-}
